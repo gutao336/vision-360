@@ -1,0 +1,1 @@
+{"background_color":"#000000","description":"本地视频环绕播放器：普通视频铺在前方 220° 沉浸大屏，真 360 视频用球幕模式。视频只在浏览器里播，不上传。","display":"fullscreen","icons":[{"sizes":"192x192","src":"icon-192.png","type":"image/png"},{"sizes":"512x512","src":"icon-512.png","type":"image/png"}],"name":"环绕影院 · Vision Pro 220° 沉浸播放器","scope":"./","short_name":"环绕影院","start_url":"./","theme_color":"#111827"}

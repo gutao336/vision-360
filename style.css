@@ -1,0 +1,186 @@
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans SC", "Microsoft YaHei", sans-serif;
+  background: #0b0b12;
+  color: #f2f2f5;
+  overscroll-behavior: none; /* 锁手势缩放配套（2026-11-18 七改）：禁掉过度滚动/橡皮筋连带触发的页面缩放 */
+}
+.app { max-width: 1600px; margin: 0 auto; padding: 16px; }
+header h1 { margin: 8px 0 4px; font-size: 24px; }
+.sub { color: #9a9ab0; margin: 0 0 16px; font-size: 14px; }
+
+/* 首屏：价值说明 + 大按钮 + 模式预览（v0.9 新增，解决"打开什么也没有"） */
+.hero { margin: 0 0 16px; }
+.hero-line { color: #c9c9d6; font-size: 15px; line-height: 1.7; margin: 0 0 12px; }
+.hero-btn {
+  background: #c9a227; color: #1a1a1a; font-weight: 700; font-size: 17px;
+  padding: 14px 26px; border: none; border-radius: 12px; cursor: pointer;
+}
+.hero-modes { color: #9a9ab0; font-size: 13px; line-height: 1.7; margin: 10px 0 0; }
+
+/* 演示角标：贴在播放器左上角，提醒这是演示、怎么换成自己的视频 */
+.demo-badge {
+  position: absolute; top: 10px; left: 10px; z-index: 5;
+  background: rgba(20, 20, 34, .82); color: #ffe9a8; border: 1px solid #c9a227;
+  font-size: 13px; padding: 6px 12px; border-radius: 999px; pointer-events: none;
+}
+/* 演示退路：captureStream 不可用时，演示画布直接铺在播放器里 */
+.demo-2d {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  object-fit: contain; background: #000;
+}
+
+/* 3D 立体模式：源格式设置行（只在 3D 模式下显示） */
+.stereo-settings {
+  display: flex; flex-wrap: wrap; gap: 10px; align-items: center;
+  margin: -4px 0 12px; color: #c9c9d6; font-size: 14px;
+}
+.stereo-settings[hidden] { display: none; }
+.stereo-settings select {
+  background: #1e1e2e; color: #f2f2f5; border: 1px solid #33334d;
+  padding: 7px 10px; border-radius: 8px; font-size: 14px;
+}
+.stereo-info { color: #9a9ab0; font-size: 13px; }
+/* 站内 3D 演示片按钮（2026-11-18 五改）：金边亮字，在设置行里第一眼就能找到 */
+.demo3d-btn { border-color: #c9a227; color: #ffe9a8; font-weight: 700; }
+/* 2D 源进立体模式的大警告（2026-11-18 五改）：占整行、字够大、金红配色。
+   来由：站内唯一的内置演示是 2D 画布动画，没选文件时进 3D 立体，切片会把一幅
+   正常画面左右劈开喂两只眼——两眼看到的是画面的不同一半，大脑拼不起来，
+   滑杆/交换/格式怎么调都晕（Haze 四轮实测都是这个）。源是真 3D 时自动消失 */
+.stereo-warn {
+  flex-basis: 100%;
+  background: #4a1503; border: 2px solid #ff7847; color: #ffd9c9;
+  font-size: 16px; font-weight: 700; line-height: 1.65;
+  padding: 12px 14px; border-radius: 10px;
+}
+.stereo-warn[hidden] { display: none; }
+/* 3D 角标贴在播放器右上角，跟左上角的演示角标分开 */
+.stereo-badge, .ai-badge { left: auto; right: 10px; }
+
+/* AI 2D转3D 模式：设置行（复用 .stereo-settings 的排版，只补滑杆和说明行） */
+#aiParallax { width: 130px; accent-color: #c9a227; vertical-align: middle; }
+#stereoStrength { width: 120px; accent-color: #c9a227; vertical-align: middle; }
+.ai-note { flex-basis: 100%; color: #9a9ab0; font-size: 12.5px; line-height: 1.6; }
+
+/* 使用步骤（v0.9 新增） */
+.steps { margin: 14px 0 4px; }
+.steps h2 { font-size: 16px; margin: 0 0 6px; }
+.steps ol { margin: 0; padding-left: 22px; color: #c9c9d6; font-size: 14px; line-height: 1.9; }
+
+.warning {
+  background: #3a2a00;
+  border: 1px solid #c9a227;
+  color: #ffe9a8;
+  padding: 12px 14px;
+  border-radius: 10px;
+  margin-bottom: 12px;
+  line-height: 1.6;
+}
+
+.toolbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 12px; }
+.file-btn {
+  background: #c9a227; color: #1a1a1a; font-weight: 700;
+  padding: 10px 16px; border-radius: 10px; cursor: pointer; white-space: nowrap;
+}
+.file-name { color: #c9c9d6; font-size: 14px; word-break: break-all; }
+/* 模式按钮必须能换行（2026-11-18 三改）：12 个按钮一排约 1340px，不换行时窗口稍窄一点，
+   最后几个按钮就被挤出窗口右边缘看不见——「🤖 AI 2D转3D」正好是倒数第二个，
+   这是 Haze 说「AI 转换没有了」的元凶之一。换行后窗口多窄按钮都在窗内 */
+.mode-switch { margin-left: auto; display: flex; flex-wrap: wrap; gap: 8px; }
+.mode-btn {
+  background: #1e1e2e; color: #ddd; border: 1px solid #33334d;
+  padding: 9px 14px; border-radius: 10px; cursor: pointer; font-size: 14px;
+}
+.mode-btn.active { background: #c9a227; color: #1a1a1a; border-color: #c9a227; font-weight: 700; }
+.mode-btn:disabled { opacity: .4; cursor: not-allowed; }
+
+.player {
+  position: relative; width: 100%; aspect-ratio: 16 / 9;
+  background: #000; border-radius: 14px; overflow: hidden; border: 1px solid #26263a;
+  touch-action: none; /* 锁手势缩放（2026-11-18 七改）：播放器区域手势全归页面自己处理，浏览器不许拿去缩放 */
+}
+/* 全屏时去掉 16:9 比例限制，播放器真正铺满整个屏幕，上下不留黑边 */
+.player:fullscreen { aspect-ratio: auto; width: 100%; height: 100%; border: none; border-radius: 0; }
+
+/* 铺满窗口：只剩播放器，占满整个浏览器窗口（Vision Pro 上把 Safari 窗口拉多大，画面就多大） */
+body.fill-window { overflow: hidden; }
+body.fill-window .app { max-width: none; padding: 0; }
+body.fill-window header,
+body.fill-window .hero,
+body.fill-window .steps,
+body.fill-window .toolbar,
+body.fill-window .stereo-settings,
+body.fill-window .ai-settings,
+body.fill-window .controls,
+body.fill-window .note,
+body.fill-window .status,
+body.fill-window .warning { display: none; }
+/* 铺满 = 纯 CSS 定位（2026-11-18 三改）：position:fixed + inset:0 把播放器直接钉在窗口上，
+   不再靠文档流里的 100vw/100vh 撑尺寸——旧写法在 VP Safari 上满窗后悬浮按钮看不见，
+   改成 fixed 后播放器和它内部的按钮必然都在窗口内、同一层里渲染 */
+body.fill-window .player { position: fixed; inset: 0; z-index: 999; width: auto; height: auto; aspect-ratio: auto; border: none; border-radius: 0; }
+/* 播放器内悬浮工具（右下角）：按钮必须放在 #player 里面——播放器全屏时浏览器只渲染
+   全屏元素内部的东西，挂在外面的按钮根本不显示（2026-11-18 修：旧「退出铺满」按钮在
+   body 上，全屏后消失，Haze 在 VP 上找不到返回、只能刷新页面）。z-index 压过画布和
+   角标；「✕ 退出」只在铺满/全屏时出现，「⌖ 回到正中」一直都在。 */
+.player-tools {
+  position: absolute; right: 12px; bottom: 76px; z-index: 30;
+  display: flex; gap: 8px;
+  /* bottom 由 12px 抬到 76px（2026-11-18 七改）：右下角「✕ 退出」DOM/CSS/事件逐环核对全对、
+     顶部条能点它点不动，最大嫌疑是 visionOS Safari 窗口底部边缘的点按被系统窗口控件/抓握区
+     吃掉、事件根本到不了按钮。把整排工具抬离底部边缘，并另加「双击画面退出」兜底（见 app.js） */
+}
+.player-tool {
+  background: rgba(30, 30, 46, .85); color: #f2f2f5; border: 1px solid #33334d;
+  padding: 9px 14px; border-radius: 10px; cursor: pointer; font-size: 14px;
+}
+.player-tool[hidden] { display: none; }
+#fillExitBtn { border-color: #c9a227; color: #ffe9a8; font-weight: 700; }
+/* 「✕ 退出」在铺满/全屏状态下无条件显示（2026-11-18 三改）：不再只靠 JS 切换 hidden 属性——
+   CSS !important 直接压过 hidden 的隐藏效果，只要处于铺满（body.fill-window）或真全屏
+   （.player:fullscreen，按钮本来就在全屏元素内部），按钮就一定显示；同时加大一号，
+   戴着头显用手点也点得准。杜绝「铺满后找不到返回、只能刷新页面」 */
+body.fill-window #fillExitBtn,
+.player:fullscreen #fillExitBtn { display: block !important; font-size: 18px; padding: 16px 22px; }
+/* 顶部居中大号退出条（2026-11-18 四改，冗余出口）：铺满时轻点画面切换显示，不跟右下角
+   按钮共用显隐逻辑；金底黑字、字号大，戴着头显也看得清、点得准。z-index 压过画布与角标。 */
+.fill-exit-bar {
+  position: absolute; top: 14px; left: 50%; transform: translateX(-50%); z-index: 40;
+  background: rgba(201, 162, 39, .96); color: #1a1a1a; border: none; border-radius: 12px;
+  font-size: 17px; font-weight: 700; padding: 12px 26px; cursor: pointer;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, .5); white-space: nowrap;
+}
+.fill-exit-bar[hidden] { display: none; }
+.player.drag-over { outline: 2px dashed #c9a227; outline-offset: -2px; }
+#scene { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; cursor: grab; }
+#scene:active { cursor: grabbing; }
+#video2d { display: none; position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; background: #000; touch-action: none; }
+#video2d.show-2d { display: block; }
+.drop-hint {
+  position: absolute; inset: 0; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; text-align: center;
+  color: #8a8aa5; font-size: 17px; line-height: 1.8;
+  pointer-events: none; padding: 0 20px;
+}
+.drop-hint span { font-size: 13px; color: #6d6d85; }
+.drop-hint[hidden] { display: none; }
+
+.controls { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 14px 0 8px; }
+.ctl-btn {
+  background: #1e1e2e; color: #f2f2f5; border: 1px solid #33334d;
+  padding: 9px 14px; border-radius: 10px; cursor: pointer; font-size: 14px; white-space: nowrap;
+}
+.ctl-btn.xr { background: #c9a227; color: #1a1a1a; font-weight: 700; border-color: #c9a227; }
+.time { font-variant-numeric: tabular-nums; font-size: 14px; color: #c9c9d6; }
+#seek { flex: 1; min-width: 120px; accent-color: #c9a227; }
+.vol { display: flex; align-items: center; gap: 6px; font-size: 14px; }
+#volume { width: 90px; accent-color: #c9a227; }
+.note { color: #9a9ab0; font-size: 13px; line-height: 1.8; }
+.status { color: #c9a227; font-size: 13px; line-height: 1.6; min-height: 1.4em; }
+
+@media (max-width: 600px) {
+  header h1 { font-size: 20px; }
+  .mode-switch { margin-left: 0; }
+  #volume { width: 64px; }
+}

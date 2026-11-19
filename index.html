@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>环绕影院 · Vision Pro 220° 沉浸播放器</title>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="环绕影院">
+<meta name="theme-color" content="#111827">
+<link rel="stylesheet" href="style.css?v=16">
+<script src="three.min.js"></script>
+</head>
+<body>
+<div class="app">
+  <header>
+    <h1>🎬 环绕影院</h1>
+    <p class="sub">把普通视频，变成 Vision Pro 里的大银幕 · 本地播放，不上传</p>
+  </header>
+
+  <section class="hero">
+    <p class="hero-line">不用先挑文件也能看效果：页面一打开就在播演示画面（海面日出）。<br>换成你自己的视频，点下面这个大按钮。</p>
+    <button id="heroPick" class="hero-btn">📂 选择本地视频（只在本地播，不上传）</button>
+    <p class="hero-modes">12 种模式随便切：70° / 90° / 110° / 130° / 150° / 180° / 220° 沉浸 · 🎥 影院 · 🌐 360° 球幕 · 🥽 3D 立体 · 🤖 AI 2D转3D · 📺 2D 原格式</p>
+  </section>
+
+  <noscript><p class="warning">需要启用 JavaScript 才能用这个播放器。</p></noscript>
+
+  <div id="cdn-warning" class="warning" hidden>
+    three.js 没加载出来，现在只能用普通 2D 播放，球幕和影院模式不可用。请刷新页面再试一次。
+  </div>
+
+  <div class="toolbar">
+    <label class="file-btn">📂 选择本地视频
+      <input type="file" id="fileInput" accept="video/*" hidden>
+    </label>
+    <span id="fileName" class="file-name">演示画面播放中 · 还没选你自己的视频</span>
+    <div class="mode-switch">
+      <button id="modeImmersive70" class="mode-btn">🎬 70° 沉浸</button>
+      <button id="modeImmersive90" class="mode-btn">🎬 90° 沉浸</button>
+      <button id="modeImmersive110" class="mode-btn">🎬 110° 沉浸</button>
+      <button id="modeImmersive130" class="mode-btn">🎬 130° 沉浸</button>
+      <button id="modeImmersive150" class="mode-btn">🎬 150° 沉浸</button>
+      <button id="modeImmersive180" class="mode-btn">🎬 180° 沉浸</button>
+      <button id="modeImmersive" class="mode-btn active">🎬 220° 沉浸</button>
+      <button id="modeCinema" class="mode-btn">🎥 影院模式</button>
+      <button id="modeSphere" class="mode-btn">🌐 360° 球幕</button>
+      <button id="modeStereo" class="mode-btn">🥽 3D 立体</button>
+      <button id="modeAi" class="mode-btn">🤖 AI 2D转3D</button>
+      <button id="mode2d" class="mode-btn">📺 2D 原格式</button>
+    </div>
+  </div>
+
+  <div id="stereoSettings" class="stereo-settings" hidden>
+    <button id="demo3dBtn" class="mode-btn demo3d-btn" type="button">▶ 播站内 3D 演示片（左右版）</button>
+    <div id="stereoWarn" class="stereo-warn" hidden>⚠️ 现在播的不是 3D 片：把普通画面劈两半喂两只眼，怎么调都晕。先点上面那个按钮播站内 3D 演示片，或选一个文件名带 SBS/OU 的真 3D 文件。</div>
+    <label>🥽 3D 源格式：
+      <select id="stereoFormat">
+        <option value="auto" selected>自动（按文件名猜）</option>
+        <option value="sbs">SBS · 左右并排</option>
+        <option value="ou">OU · 上下并排</option>
+      </select>
+    </label>
+    <span id="stereoFormatInfo" class="stereo-info"></span>
+    <label class="swap-eye"><input type="checkbox" id="stereoSwap"> 🔀 交换左右眼（立体看着难受、远近反了，就勾这个试试）</label>
+    <label>🎚 立体强弱（晕就往左滑，滑到画面变平就是 2D）：
+      <input type="range" id="stereoStrength" min="-100" max="100" step="5" value="-35">
+      <span id="stereoStrengthVal">弱 35%</span>
+    </label>
+    <span class="stereo-info">中间 0 = 片子原始视差；往左滑 = 视差变小治晕（默认已停在弱 35%），一直滑到画面变平就是纯 2D、肯定不晕（再往左会反着凸，别滑过头）；往右滑 = 立体更强。不管片子的视差是哪个方向，这一整条滑杆里总有一段是平的，晕就停在那一段。</span>
+  </div>
+
+  <div id="aiSettings" class="stereo-settings ai-settings" hidden>
+    <label>🤖 视差强度：
+      <input type="range" id="aiParallax" min="0" max="10" step="0.5" value="4">
+      <span id="aiParallaxVal">4.0%</span>
+    </label>
+    <span id="aiStatus" class="stereo-info">AI 模型还没加载，点模式后自动开始</span>
+    <button id="aiRetryBtn" class="mode-btn" type="button" hidden>🔁 重新加载 AI</button>
+    <span class="ai-note">首次使用要下载约 50MB 深度模型，之后走浏览器缓存；推理全在本地，视频不出本机。</span>
+  </div>
+
+  <div id="player" class="player">
+    <canvas id="scene"></canvas>
+    <video id="video2d" playsinline preload="auto"></video>
+    <canvas id="demoCanvas2d" class="demo-2d" width="1280" height="720" hidden></canvas>
+    <div id="demoBadge" class="demo-badge" hidden>🎞 这是演示画面 · 点「选择本地视频」换成你的视频</div>
+    <div id="stereoBadge" class="demo-badge stereo-badge" hidden>🥽 3D 源 · 现在显示左眼画面 · 进 Vision Pro 沉浸模式看真立体</div>
+    <div id="aiBadge" class="demo-badge ai-badge" hidden>🤖 AI 转 3D · 现在是左右并排预览 · 进 Vision Pro 沉浸模式看真立体</div>
+    <div class="player-tools">
+      <button id="centerBtn" class="player-tool" type="button">⌖ 回到正中</button>
+      <button id="fillExitBtn" class="player-tool" type="button" hidden>✕ 退出</button>
+    </div>
+    <button id="fillExitBar" class="fill-exit-bar" type="button" hidden>✕ 退出铺满</button>
+    <div id="dropHint" class="drop-hint" hidden>先选一个本地视频文件<br><span>普通视频铺在前方 220°，和 Apple TV 沉浸视频一个路子；等距长方形的真 360 视频用 360° 球幕模式</span></div>
+  </div>
+
+  <div class="controls">
+    <button id="playBtn" class="ctl-btn">▶ 播放</button>
+    <span id="curTime" class="time">00:00</span>
+    <input type="range" id="seek" min="0" max="1000" value="0" aria-label="进度">
+    <span id="durTime" class="time">00:00</span>
+    <label class="vol">🔊 <input type="range" id="volume" min="0" max="100" value="80" aria-label="音量"></label>
+    <button id="fsBtn" class="ctl-btn">⛶ 全屏</button>
+    <button id="fillBtn" class="ctl-btn">▣ 铺满窗口</button>
+    <button id="xrBtn" class="ctl-btn xr" hidden>🥽 进入沉浸模式</button>
+    <span id="xrNote" class="stereo-info" hidden>⚠️ 进了 VR 沉浸后，网页上的按钮全都不显示（头显系统的限制，改不了）——退出 VR 请按头显顶部按钮/数码旋钮回系统界面，别在网页里找退出按钮。</span>
+  </div>
+
+  <div class="steps">
+    <h2>在 Vision Pro 上怎么用</h2>
+    <ol>
+      <li>在 Vision Pro 的 Safari 里打开这个页面。</li>
+      <li>点「📂 选择本地视频」，选一个视频文件——只在浏览器里播，<strong>不上传</strong>，文件多大都不耗流量。</li>
+      <li>选模式：普通视频用「🎬 220° 沉浸」或「🎥 影院模式」；真 360 视频（等距长方形）用「🌐 360° 球幕」；立体视频（左右并排 SBS / 上下并排 OU）用「🥽 3D 立体」，再点「🥽 进入沉浸模式」，左右眼分别看各自半幅画面，才是真立体；普通 2D 视频想看立体，用「🤖 AI 2D转3D」——网页里实时用 AI 估深度、合成左右眼（首次要下载约 50MB 模型，全程本地），再点「🥽 进入沉浸模式」看。</li>
+      <li>点「▣ 铺满窗口」或「⛶ 全屏」把画面放大；放大后画面右下角有「✕ 退出」按钮，点它就回到普通页面（不用刷新）。要是没看见按钮，<strong>轻点一下画面</strong>，顶部中间会出来一条大号「✕ 退出铺满」，点它同样能退出。视角拖歪了，点画面右下角「⌖ 回到正中」一键转回正前方。也可以点 Safari 分享 →「添加到主屏幕」，下次点图标直接进影院；浏览器支持 WebXR 时，还会多一个「🥽 进入沉浸模式」按钮——注意：进了 VR 沉浸后网页按钮全都不显示，退出 VR 要按头显顶部按钮/数码旋钮回系统界面。</li>
+    </ol>
+  </div>
+
+  <p class="note">先说清楚：普通视频没拍到的画面是变不出来的。这里做的是环绕播放器——视频贴在你前方的沉浸大屏上，在 Vision Pro 里就是沉浸式看片。220° 按 Apple TV 沉浸视频的标准定（Apple 的沉浸片 180° 起、能延到 230°）：画面在正前方展开、余光里还有，不用转身；普通视频在 220° 下是拉伸填充，看的是环绕感，不是真 360。拖动画面可以转动视角，手机上同样可以拖。沉浸模式从 70° 到 220° 一排：90° 和 110° 的屏能一眼看全，130° 和 150° 的屏比视野宽，左右两边要转头才看得到，跟 220° 一个道理。「🥽 3D 立体」是给立体片源用的：左右并排（SBS）或上下并排（OU）的视频，在沉浸模式里左右眼各看各的那一半，是真立体；普通屏幕上只能预览左眼那一半。3D 立体的屏幕是正前方一块 90° 弧幕、AI 转 3D 的屏幕是 130° 弧幕（都上下留边，不包球面，所以画面顶上、下边不会再扭到一起）；立体看着晕，多半是源片视差太强、或者视差方向跟眼睛合不上，在 3D 设置里拖「🎚 立体强弱」往左滑就能收小视差（默认弱 20%），滑到画面变平就是纯 2D、肯定不晕，想更强往右滑；远近反了，才是左右眼喂反了，勾「🔀 交换左右眼」即可对调。普通 2D 视频别用 3D 模式，会把画面劈成两半看。想把普通 2D 视频看成立体，用「🤖 AI 2D转3D」：浏览器里跑一个小深度模型（首次下载约 50MB，之后走缓存），实时估每帧的远近、合成右眼画面，全程本地不上传；网页版模型小，立体感和流畅度比不上桌面大模型，实际帧率看模式下方状态行的实时显示。</p>
+  <p id="status" class="status"></p>
+</div>
+<script src="app.js?v=16"></script>
+</body>
+</html>
